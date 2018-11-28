@@ -88,7 +88,7 @@ public class SceneNode extends Intersectable {
     	
     	//transform normal back
     	Vector4d normal=new Vector4d(result.n.x,result.n.y, result.n.z, 0);
-    	Matrix4d MT= Minv;
+    	Matrix4d MT= new Matrix4d(Minv);
     	MT.transpose();
     	temp=matrixMul(MT, normal);
     	result.n.x=temp.x;

@@ -9,6 +9,7 @@ import javax.vecmath.Color3f;
 import javax.vecmath.Matrix3d;
 import javax.vecmath.Matrix4d;
 import javax.vecmath.Point3d;
+import javax.vecmath.Tuple4f;
 import javax.vecmath.Vector3d;
 
 /**
@@ -59,34 +60,26 @@ public class Scene {
 				// TODO: Objective 1: generate a ray (use the generateRay method)
 
 				// TODO: Objective 2: test for intersection with scene surfaces
+				
 				Ray ray=new Ray();
-				generateRay(j, i, new double [] {-.5d,.5d}, cam ,ray);
-
-				IntersectResult near=new IntersectResult();
+				generateRay(i, j, new double [] {-.5d,.5d}, cam ,ray);
 				
 				Color3f c = new Color3f(render.bgcolor);
-	
-
-				// TODO: Objective 3: compute the shaded result for the intersection point (perhaps requiring shadow rays)
-					for(Intersectable s: surfaceList){
-						IntersectResult result=new IntersectResult();
-						s.intersect(ray, result);	
-						if(result.material!=null){
-						//	result.t=result.p.distance(ray.eyePoint);
-							if(result.t<near.t&&result.t!=0){
-								near=result;
-								c=shading(near, ray, s);
-							}
-						}
-					
-
-
-
-				}
+				IntersectResult near=new IntersectResult();
+				Intersectable intersect=intersect(near, ray);;
+			
 				// TODO: Objective 8: do antialiasing by sampling more than one ray per pixel
-
-				// Here is an example of how to calculate the pixel value.
-
+				if(intersect!=null){
+//					if(render.samples==1){
+						if(near.material.specular.x==1&&near.material.specular.y==1&&near.material.specular.z==1){
+							c=mirrorReflection(4, near, ray, intersect);
+						}else{
+							c=shading(near, ray, intersect);
+						}
+//					}else{
+						//c=superSampling(i, j, cam, render.samples, intersect);
+//					}
+				}
 				// update the render image
 
 
@@ -107,16 +100,70 @@ public class Scene {
 		render.waitDone();
 
 	}
+	
+	private Intersectable intersect(IntersectResult near, Ray ray){
+		
+		Intersectable intersect=null;
+		//compute intersection
+		for(Intersectable s: surfaceList){	
+			IntersectResult result=new IntersectResult();
+			s.intersect(ray, result);	
+			
+			if(result.material!=null){
+				//	result.t=result.p.distance(ray.eyePoint);
+				if(result.t<near.t&&result.t!=0){
+					near.p=result.p;
+					near.n=result.n;
+					near.material=result.material;
+					near.t=result.t;
+					intersect=s;
+				}
+			}
+		}
+		return intersect;
+	}
+	
+	
+	private Color3f superSampling(double i, double j, Camera cam, int samples,  Intersectable s){
+		
+		Color3f c=new Color3f();
+		int grid=(int) Math.sqrt(samples);
+		double length=1/grid;
+		
+		for(int n=0; n<grid; n++){
+			for (int k = 0; k < grid; k++) {
+				Ray ray = new Ray();
+				IntersectResult result = new IntersectResult();
+				//random sampling within a pixel 
+				double rand = Math.random();
+				i = Math.max(0, i - .5 + (n+rand)*length);
+				rand = Math.random();
+				j = Math.max(0, j - .5 + (k+rand)*length);
+				generateRay(i, j, new double[] { -.5d, .5d }, cam, ray);
+				//compute pixel color
+				s.intersect(ray, result);
+				if (result.material != null) {
+					c.add(shading(result, ray, s));
+				} 
+			}
+		}
+		
+		//c.scale(1/samples);
+		c.x=c.x/samples;
+		c.y=c.y/samples;
+		c.z=c.z/samples;
+		c.clamp(0, 1);
+		return c;
+	}
 
 	private void camFrame(Camera cam){
-		Point3d e=cam.from;
+		Point3d e=new Point3d(cam.from);
 
 		//camera transformation matrix
 		Vector3d lookAt=new Vector3d();
 		lookAt.sub(e, cam.to);
 		lookAt.normalize();
-		Vector3d U=new Vector3d();
-		U=cam.up;
+		Vector3d U=new Vector3d(cam.up);
 		U.cross(lookAt, U);
 		
 		U.normalize();
@@ -137,7 +184,7 @@ public class Scene {
 	 * @param cam The camera.
 	 * @param ray Contains the generated ray.
 	 */
-	public void generateRay(final int i, final int j, final double[] offset, final Camera cam, Ray ray) {
+	public void generateRay(final double i, final double j, final double[] offset, final Camera cam, Ray ray) {
 
 		// TODO: Objective 1: generate rays given the provided parmeters
 		double aspect=cam.imageSize.getHeight()/cam.imageSize.getWidth();
@@ -150,15 +197,11 @@ public class Scene {
 
 		double l = -r;
 		double b = -t;
-
 		//convert pixel coordinates to image coordinates
-		double u=(double) l+(r-l)*(i+0.5)/cam.imageSize.width;
-		double v=(double) b+(t-b)*(j+0.5)/cam.imageSize.height;
-
-
+		double u=(double) l+(r-l)*(j+0.5)/cam.imageSize.width;
+		double v=(double) b+(t-b)*(i+0.5)/cam.imageSize.height;
 		//from camera frame to world frame
 		//compute ray function
-//		Vector3d camFrame=new Vector3d(u, v, cam.to.z);
 		Vector3d r0=new Vector3d();
 		Vector3d r1=new Vector3d();
 		Vector3d r2=new Vector3d();
@@ -174,11 +217,11 @@ public class Scene {
 		r0.add(r2);
 		r0.add(cam.from);
 
-//		Point3d s=new Point3d(camFrame.dot(r0),camFrame.dot(r1),camFrame.dot(r2));
 		Point3d s=new Point3d(r0.x,r0.y,r0.z);
-		ray.eyePoint=cam.from;
-		ray.viewDirection.sub(s, cam.from);
-		ray.viewDirection.normalize();
+		Vector3d vec=new Vector3d();
+		vec.sub(s, cam.from);
+		vec.normalize();
+		ray.set(cam.from, vec);
 
 	}
 
@@ -213,22 +256,28 @@ public class Scene {
 
 	}
 
-	//# after exp, number too small to be seen , could be ray direction's problem
-	private Color3f phongShading(Light l, IntersectResult result, Ray ray){
-
-		//light direction
+	private Vector3d reflect(Point3d from, IntersectResult result){
 		Vector3d direc=new Vector3d();
-		direc.sub( l.from, result.p);
+		direc.sub(from, result.p);
 		direc.normalize();
+		
+		Vector3d r=new Vector3d(result.n);
+		r.scale(2*r.dot(direc));
+		r.sub(direc);
+		return r;		
+	}
+	
+	private Color3f phongShading(Light l, IntersectResult result, Ray ray){
+	//bisector
+		Vector3d h=reflect(l.from, result);
 		Material mat=result.material;
 
-		//bisector
-		Vector3d h=new Vector3d(ray.viewDirection);
-		h.negate();
-		h.add(direc);
-		h.normalize();
+		Vector3d e=new Vector3d(ray.viewDirection);
+		e.negate();
+		e.normalize();
+
 		
-		double viewAngle=result.n.angle(h);
+		double viewAngle=e.angle(h);
 		viewAngle=Math.cos(viewAngle);
 		
 		Color3f shading = new Color3f();
@@ -242,9 +291,8 @@ public class Scene {
 	private Color3f shading(IntersectResult result, Ray ray, Intersectable i){
 
 		Color3f color=ambientShading(result);
-
-		//convert the Intersectable to SceneNode and test for the shadow
 		
+		//convert the Intersectable to SceneNode and test for the shadow
 		SceneNode root;
 		if(!(i instanceof SceneNode)){
 			root=toSceneNode(i);
@@ -255,12 +303,10 @@ public class Scene {
 		//adding color component for all light sources 
 		for(Light l: lights.values()){
 			IntersectResult shadow=new IntersectResult();
+
+			//if in shadow, skip diffuse and Phong shading
 			Ray shadowRay=new Ray();
 			if(inShadow(result, l, root, shadow, shadowRay)){
-//				color.x=(float) (color.x*.8);
-//				color.x=(float) (color.y*.8);
-//				color.x=(float) (color.z*.8);
-	//			color=new Color3f(0,0,0);
 				continue;
 			}
 			Color3f dif=diffuseShading(l, result);
@@ -272,6 +318,27 @@ public class Scene {
 		//make sure color is inside valid range 
 		color.clamp(0, 1);
 		return color;
+	}
+
+	private Color3f mirrorReflection(int max, IntersectResult result, Ray ray, Intersectable i){
+		
+		if(max>1&&result.material.specular.x==1&&result.material.specular.y==1&&result.material.specular.z==1){
+			//reflect ray
+			Ray reflect=new Ray();
+			reflect.viewDirection=reflect(ray.eyePoint, result);
+			reflect.eyePoint=result.p;
+			//intersect the reflect ray
+			IntersectResult near=new IntersectResult();
+			Intersectable newi=intersect(near, reflect);
+			
+			if(newi==null){
+				return shading(result, ray, i);
+			}
+			Color3f c=mirrorReflection(max-1, near, reflect, newi);
+			return c;
+		}else{
+			return shading(result, ray, i);
+		}
 	}
 	
 	private SceneNode toSceneNode(Intersectable i){

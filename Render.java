@@ -42,7 +42,7 @@ public class Render extends WindowAdapter {
     public Camera camera;
     
     /** Samples per pixel */
-    public int samples;
+    public int samples=0;
     
     /** The output filename */
     public String output;
