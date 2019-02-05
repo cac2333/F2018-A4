@@ -1,0 +1,36 @@
+<?xml version="1.0"?>
+<scene ambient="0.2 0.2 0.2">
+  <!-- define camera,material,lights here -->
+  <light name="myLight" color="0.8 0.2 0.2" from="10 5 10 " power="0.6" type="point" />
+  <light name="myLight2" color="0.8 0.8 0.8" from="-10 10 2 " power="0.9" type="point" />
+  <material name="white" diffuse=".9 .9 .9" specular=".3 .3 .3" hardness="8" />
+  <material name="black" diffuse="0 0 0" specular="1 1 1" hardness="32" />
+  <material name="blue" diffuse="0 0 1" specular="0.5 0.5 0.5" hardness="16" />
+  <material name="pink" diffuse="1 .9 .9" specular="1 1 1" hardness="16" />
+  
+  <!-- render configuration -->
+  <render bgcolor="0 0 0" output="TwoSpheresPlane.png" samples="12" >
+    <camera name="myCamera" from="0 4 6" to="0 2 0" up="0 1 0" fovy="45" width="640" height="480" />
+  </render> 
+  
+  <!-- scene objects -->
+  <node name="root" >
+	  <sphere center=".5 1 -1" radius="1" >
+		<material ref="white" />
+	  </sphere>
+	  <sphere center="0.5 2.5 -1" radius="0.7" >
+		<material ref="white" />
+	  </sphere> 
+	<sphere center="0.1 2.8 -.3" radius="0.1" >
+		<material ref="black" />
+	  </sphere> 
+	<sphere center="0.85 2.8 -.35" radius="0.1" >
+		<material ref="black" />
+	  </sphere> 
+	  <plane coeffs="0 1 0 0" >
+		<material ref="pink" />
+	  </plane>  
+  </node>
+</scene>
+
+
