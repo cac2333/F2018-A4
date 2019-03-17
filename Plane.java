@@ -15,14 +15,20 @@ public class Plane extends Intersectable {
 	Material material2;
 	
 	/** The plane normal is the y direction */
-	public static final Vector3d n = new Vector3d( 0, 1, 0 );
-    
+	public Vector3d n = new Vector3d( 0, 1, 0 );
+    private Point3d p=new Point3d(0,0,0);
     /**
      * Default constructor
      */
     public Plane() {
     	super();
     }
+
+    public Plane(Point3d p, Vector3d n){
+    	this.n=n;
+    	this.p=p;
+    }
+    
 
         
     @Override
@@ -34,14 +40,16 @@ public class Plane extends Intersectable {
 
     	//v=Q-A
     	Vector3d v=new Vector3d();
-    	v.sub(new Point3d(0, 0, 0), ray.eyePoint);
+    	v.sub(p, ray.eyePoint);
     	double t=v.dot(n)/ray.viewDirection.dot(n);
 
     	if(t<=0){
     		//does not intersect
+    		return;
     	}else{
 
     		result.n=this.n;
+    		n.normalize();
     		ray.getPoint(t, result.p);
     		if(material2==null){
     			result.material=this.material;
@@ -57,9 +65,8 @@ public class Plane extends Intersectable {
     				result.material=this.material2;
 
     			}
-    			
-    			result.t=result.p.distance(ray.eyePoint);
     		}
+    		result.t=result.p.distance(ray.eyePoint);
     	}
 
     }

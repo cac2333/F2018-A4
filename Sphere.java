@@ -58,8 +58,6 @@ public class Sphere extends Intersectable {
     		if(delta<0){
     			return;
     		}else{
-    			result.material=this.material;
-    			
     			double root1=(b+Math.sqrt(delta))/a;
     			double root2=(b-Math.sqrt(delta))/a;
     			
@@ -67,6 +65,8 @@ public class Sphere extends Intersectable {
     			if (root1<=0&&root2<=0){
     				return;
     			}
+    			
+    			result.material=this.material;
     			
     			if(root1>root2&&root2>0){
     				ray.getPoint(root2, result.p);
@@ -82,20 +82,8 @@ public class Sphere extends Intersectable {
     				ray.getPoint(root2, result.p);
     				result.n=normal(this, result.p);
     			}
-    			
-    			
-
-//    			if(root1>root2){
-//    				ray.getPoint(root1, result.p);
-//    				result.n=normal(this, result.p);
-//    				
-//    			}else {
-//    				ray.getPoint(root2, result.p);
-//    				result.n=normal(this, result.p);
-//    			}
-//    				
-    			result.t=result.p.distance(ray.eyePoint);
     		}
+    		result.t=result.p.distance(ray.eyePoint);
     }
     
     
